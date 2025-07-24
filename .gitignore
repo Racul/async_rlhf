@@ -162,3 +162,5 @@ cython_debug/
 results/
 wandb/
 logs/
+
+code.deb
