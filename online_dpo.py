@@ -20,6 +20,8 @@ from src.online_dpo_trainer import OnlineDPOTrainer
 from src.online_dpo_vllm_trainer import OnlineDPOVLLMConfig, OnlineDPOVLLMTrainer
 from src.utils import TRLParser, WandbLogModelConfig
 
+import wandb
+
 
 @dataclass
 class ScriptArguments:
@@ -54,10 +56,7 @@ def prepare_dataset(dataset, tokenizer):
     )
 
 
-if __name__ == "__main__":
-    parser = TRLParser((ScriptArguments, OnlineDPOVLLMConfig, ModelConfig))
-    args, config, model_config = parser.parse_args_and_config()
-
+def main(args, config, model_config):
     if args.wandb_run_id == "slurm":
         run_id = os.environ["SLURM_JOB_ID"]
         config_name = os.path.basename(config.output_dir)
@@ -67,6 +66,16 @@ if __name__ == "__main__":
         os.environ["WANDB_RUN_ID"] = run_id + "_" + config_name
     elif args.wandb_run_id is not None:
         os.environ["WANDB_RUN_ID"] = args.wandb_run_id
+
+    # === wandb import 및 init 추가 ===
+    wandb.init(
+        entity="Agentic-Fuzzing",
+        project="dpo-online",  # 원하는 프로젝트 이름으로 변경
+        name=args.wandb_run_id if args.wandb_run_id is not None else None,  # 원하는 run 이름
+        id=os.environ.get("WANDB_RUN_ID"),
+        resume="allow"
+    )
+    # ==============================
 
     ################
     # Model & Tokenizer
@@ -161,3 +170,8 @@ if __name__ == "__main__":
                 pass
 
             os.symlink(config.output_dir, "output_dir")
+
+if __name__ == "__main__":
+    parser = TRLParser((ScriptArguments, OnlineDPOVLLMConfig, ModelConfig))
+    args, config, model_config = parser.parse_args_and_config()
+    main(args, config, model_config)
