@@ -21,6 +21,7 @@ from src.online_dpo_vllm_trainer import OnlineDPOVLLMConfig, OnlineDPOVLLMTraine
 from src.utils import TRLParser, WandbLogModelConfig
 
 import wandb
+import uuid
 
 
 @dataclass
@@ -64,6 +65,10 @@ def main(args, config, model_config):
         if args.output_global_parent_dir is not None:
             config.output_dir = os.path.join(args.output_global_parent_dir, run_id, config.output_dir)
         os.environ["WANDB_RUN_ID"] = run_id + "_" + config_name
+    elif args.wandb_run_id == "random":
+        run_id = str(uuid.uuid4())[:8]
+        config_name = os.path.basename(config.output_dir)
+        os.environ["WANDB_RUN_ID"] = run_id + "_" + config_name
     elif args.wandb_run_id is not None:
         os.environ["WANDB_RUN_ID"] = args.wandb_run_id
 
@@ -71,8 +76,6 @@ def main(args, config, model_config):
     wandb.init(
         entity="Agentic-Fuzzing",
         project="dpo-online",  # 원하는 프로젝트 이름으로 변경
-        name=args.wandb_run_id if args.wandb_run_id is not None else None,  # 원하는 run 이름
-        id=os.environ.get("WANDB_RUN_ID"),
         resume="allow"
     )
     # ==============================

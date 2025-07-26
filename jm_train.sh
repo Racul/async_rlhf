@@ -12,7 +12,7 @@ fi
 # 명령어를 tmux 세션에 입력
 tmux send-keys -t $SESSION_NAME "cd $PROJECT_DIR" C-m
 tmux send-keys -t $SESSION_NAME "source .venv/bin/activate" C-m
-tmux send-keys -t $SESSION_NAME "python online_dpo.py --config configs/onlinedpo_pythia410m_tldr.yml --wandb_run_id test" C-m
+tmux send-keys -t $SESSION_NAME "python online_dpo.py --config configs/onlinedpo_pythia410m_tldr.yml --wandb_run_id random --run_name pythia401m_tldr" C-m
 
 echo "Started online_dpo.py in tmux session: $SESSION_NAME"
 echo "접속하려면: tmux attach -t $SESSION_NAME"
