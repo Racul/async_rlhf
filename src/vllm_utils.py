@@ -55,7 +55,9 @@ from vllm.distributed.parallel_state import (
     get_world_group,
     init_model_parallel_group,
 )
-from vllm.executor.gpu_executor import GPUExecutor
+# vLLM >= 0.9 reorganized executors; GPUExecutor was removed.
+# Importing UniProcExecutor ensures compatibility and allows future targeted patching if needed.
+from vllm.executor.uniproc_executor import UniProcExecutor  # noqa: F401
 
 
 def custom_initialize_model_parallel(
@@ -148,4 +150,6 @@ def _init_executor(self) -> None:
 def vllm_single_gpu_patch():
     vllm.distributed.parallel_state.init_world_group = init_world_group
     vllm.distributed.parallel_state.initialize_model_parallel = custom_initialize_model_parallel
-    GPUExecutor._init_executor = _init_executor
+    # vLLM >= 0.9 already uses a uniprocess executor that respects the device index
+    # from the provided device string (e.g., "cuda:1"). Overriding _init_executor is
+    # no longer required and GPUExecutor no longer exists.

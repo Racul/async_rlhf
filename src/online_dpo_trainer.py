@@ -105,7 +105,8 @@ class OnlineDPOTrainer(RLOOTrainer):
     ) -> None:
         self.args = config
         args = config
-        self.tokenizer = tokenizer
+        # Use processing_class instead of deprecated Trainer.tokenizer
+        self.processing_class = tokenizer
         self.policy = policy
 
         self.policy.generation_config.eos_token_id = (
@@ -185,6 +186,9 @@ class OnlineDPOTrainer(RLOOTrainer):
         if args.stop_token and args.stop_token == "eos":
             args.stop_token_id = tokenizer.eos_token_id
         self.model = policy
+        # Transformers >= 4.51 expects `optimizer_cls_and_kwargs` to be set by __init__.
+        # Since we don't call super().__init__, set it explicitly for compatibility.
+        self.optimizer_cls_and_kwargs = self.get_optimizer_cls_and_kwargs(self.args)
         self.create_optimizer_and_scheduler(num_training_steps=self.num_batches)
 
         #########
@@ -200,7 +204,7 @@ class OnlineDPOTrainer(RLOOTrainer):
         self.callback_handler = CallbackHandler(
             callbacks,
             self.model,
-            self.tokenizer,
+            self.processing_class,
             self.optimizer,
             self.lr_scheduler,
         )
@@ -227,7 +231,7 @@ class OnlineDPOTrainer(RLOOTrainer):
             self.train_dataset,
             batch_size=self.local_dataloader_batch_size,
             shuffle=True,
-            collate_fn=DataCollatorWithPadding(tokenizer),
+            collate_fn=DataCollatorWithPadding(self.processing_class),
             drop_last=True,  # needed; otherwise the last batch will be of ragged shape
         )
         # sync random states for DataLoader(shuffle=True) before `accelerator.prepare`
@@ -239,7 +243,7 @@ class OnlineDPOTrainer(RLOOTrainer):
         self.eval_dataloader = DataLoader(
             self.eval_dataset,
             batch_size=args.per_device_eval_batch_size,
-            collate_fn=DataCollatorWithPadding(self.tokenizer),
+            collate_fn=DataCollatorWithPadding(self.processing_class),
             drop_last=True,
         )  # no need to shuffle eval dataset
         self.eval_dataloader = accelerator.prepare(self.eval_dataloader)
@@ -268,7 +272,7 @@ class OnlineDPOTrainer(RLOOTrainer):
         self.model_wrapped = self.model
         ref_policy = self.ref_policy
         reward_model = self.reward_model
-        tokenizer = self.tokenizer
+        tokenizer = self.processing_class
         dataloader = self.dataloader
         device = accelerator.device
 
@@ -645,7 +649,7 @@ class OnlineDPOTrainer(RLOOTrainer):
 
     def generate_completions(self, sampling: bool = False):
         args = self.args
-        tokenizer = self.tokenizer
+        tokenizer = self.processing_class
         generation_config = GenerationConfig(
             max_new_tokens=self.args.response_length,
             temperature=(0.01 + 1e-7),

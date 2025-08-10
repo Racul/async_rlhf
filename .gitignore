@@ -164,3 +164,6 @@ wandb/
 logs/
 
 code.deb
+
+onlinedpo_pythia410m_tldr6.9b/
+output_dir/
